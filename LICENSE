@@ -1,0 +1,16 @@
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+[Full GPLv3 text: https://www.gnu.org/licenses/gpl-3.0.txt]
+
+Decepticon Ghidra MCP Extended is licensed under GPLv3.
+
+Reason: Ghidra itself is licensed under the Apache 2.0 license, but
+extension plugins that link against Ghidra's BSim and VersionTracking
+APIs (which have GPL-style restrictions in their internal libraries)
+are by convention GPL-licensed. This matches the practice of
+LaurieWired/GhidraMCP and other Ghidra plugins.

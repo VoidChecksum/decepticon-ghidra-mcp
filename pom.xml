@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>io.decepticon.ghidra</groupId>
+    <artifactId>decepticon-ghidra-mcp-extended</artifactId>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+    <name>Decepticon Ghidra MCP Extended</name>
+    <description>Extends LaurieWired/GhidraMCP w/ P-code, BSim, Version Tracking, Emulator, Script tools for agentic RE.</description>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Adjust to the operator's local Ghidra install -->
+        <ghidra.home>${env.GHIDRA_HOME}</ghidra.home>
+    </properties>
+
+    <dependencies>
+        <!-- All Ghidra deps come from $GHIDRA_HOME/Ghidra/Framework/*/lib/*.jar
+             and $GHIDRA_HOME/Ghidra/Features/*/lib/*.jar. We use systemPath
+             so this builds against the user's local Ghidra install. -->
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>Generic</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Framework/Generic/lib/Generic.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>Project</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Framework/Project/lib/Project.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>SoftwareModeling</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Features/Base/lib/SoftwareModeling.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>Decompiler</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Features/Decompiler/lib/Decompiler.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>BSim</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Features/BSim/lib/BSim.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>VersionTracking</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Features/VersionTracking/lib/VersionTracking.jar</systemPath>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

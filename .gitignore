@@ -1,0 +1,27 @@
+# Build output
+target/
+dist/
+*.zip
+*.jar
+*.class
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.uv/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local Ghidra project dirs
+.ghidra/
+*.gpr
+*.rep/
