@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.decepticon.ghidra</groupId>
     <artifactId>decepticon-ghidra-mcp-extended</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0</version>
     <packaging>jar</packaging>
     <name>Decepticon Ghidra MCP Extended</name>
     <description>Extends LaurieWired/GhidraMCP w/ P-code, BSim, Version Tracking, Emulator, Script tools for agentic RE.</description>

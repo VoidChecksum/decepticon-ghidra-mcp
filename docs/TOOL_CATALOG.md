@@ -1,214 +1,127 @@
-# Decepticon Ghidra MCP — Complete Tool Catalog (36 tools)
+# Decepticon Ghidra MCP — Tool Catalog (v0.2.0)
 
-Full catalog organized by tier (priority + Ghidra-API complexity). v0.1 ships
-Tier 1 (8 tools). Subsequent releases populate the remaining 28.
+41 HTTP endpoints across 6 tiers. Plugin in `src/main/java/io/decepticon/ghidra/`; Python bridge in `scripts/`.
 
-## Tier 1 — P-code + BSim core (v0.1 — SHIPPED)
+> All endpoints respect the operator-loaded program — they read whichever binary is currently active in the Ghidra tool. To act on a different file, open it first.
 
-The 8 tools that unlock agentic workflows no existing Ghidra MCP supports.
+## Version history
 
-### 1. `ghidra_pcode_emit_function`
-- **Ghidra API**: `ghidra.app.decompiler.DecompInterface.decompileFunction()` → `HighFunction.getPcodeOps()`
-- **Purpose**: Get raw + high P-code ops for every instruction in a function
-- **Why it matters**: Architecture-independent taint analysis — P-code is Ghidra's IR; sink/source identification works across x86/ARM/MIPS/RISC-V w/o per-ISA grammar
-- **In**: `{addr, simplification="register"|"normalize"|"decompile"}`
-- **Out**: list of P-code ops, each `{mnemonic, inputs[Varnode], output[Varnode], sequence}`
+| Version | Routes | Notes |
+|---|---|---|
+| v0.1.0 | 8 | Tier 1 only; 6 of 8 stubbed at HTTP-501 |
+| v0.1.1 | 9 | Tier 1 fully implemented/scaffolded; +`/health` |
+| **v0.2.0** | **41** | Adds Tier 2 (9) + Tier 3 (5) + Tier 4 (5) + Tier 5 (5) + Tier 6 (9) |
 
-### 2. `ghidra_pcode_slice_backward`
-- **Ghidra API**: `HighFunction.getPcodeOps()` + walk `Varnode.getDef()`
-- **Purpose**: Backward dataflow slice from a Varnode (e.g. sink argument)
-- **Use**: Trace where untrusted input flows from. Chain: `xrefs_to(strcpy) → slice_backward(arg) → check if it reaches PARAM/LOAD from user-controlled offset`
-- **In**: `{addr, varnode_id, max_depth=20}`
-- **Out**: list of ancestor P-code ops with their Varnodes
+## Tier 1 — P-code + advanced analysis (9 routes)
 
-### 3. `ghidra_pcode_slice_forward`
-- **Ghidra API**: Walk `Varnode.getDescendants()` from a starting op
-- **Purpose**: Forward def-use chain — where does this value go?
-- **Pair w/ #2**: source→sink reachability for taint analysis
+| HTTP route | Python wrapper | Purpose |
+|---|---|---|
+| `GET /pcode/emit` | `ghidra_pcode_emit_function` | HighFunction.getPcodeOps — full op list |
+| `GET /pcode/slice_backward` | `ghidra_pcode_slice_backward` | Varnode.getDef ancestor walk (taint source) |
+| `GET /pcode/slice_forward` | `ghidra_pcode_slice_forward` | Varnode.getDescendants walk (taint sink) |
+| `GET /bsim/signature` | `ghidra_bsim_generate_signature` | Function similarity signature |
+| `GET /bsim/query` | `ghidra_bsim_query_function` | Submit signature → ranked DB matches |
+| `GET /vt/correlate` | `ghidra_version_tracking_correlate` | Cross-binary correlator (5 algorithms supported) |
+| `POST /script/run` | `ghidra_run_script` | Eval Jython w/ pre-bound currentProgram |
+| `POST /emulate` | `ghidra_emulate_function` | SLEIGH emulator w/ reg+mem pre-state |
+| `GET /health` | (probed at bridge start) | Server liveness + program name |
 
-### 4. `ghidra_bsim_query_function`
-- **Ghidra API**: `ghidra.features.bsim.query.BSimClientFactory.querySimilar()`
-- **Purpose**: Submit a fn signature vector to a BSim DB → ranked similar fns across corpus
-- **Use**: **Diff-based 0-day discovery**. Index a patched kernel → query unpatched fn against the patched index → high-similarity-but-not-identical matches identify the security-relevant delta
-- **In**: `{addr, db_url, threshold=0.85, max_results=20}`
-- **Out**: `[{exe_name, fn_name, similarity_score, addr}, ...]`
+## Tier 2 — Decompiler + renaming (9 routes)
 
-### 5. `ghidra_bsim_generate_signature`
-- **Ghidra API**: `ghidra.features.bsim.gui.BSimGuiUtils.generateSignatures()`
-- **Purpose**: Pre-compute BSim signature(s) for a binary or specific function
-- **Pair w/ #4**: build the corpus, then query against it
+| HTTP route | Python wrapper | Purpose |
+|---|---|---|
+| `GET /decompile/function` | `ghidra_decompile_function` | Full C source for one function |
+| `GET /decompile/quality` | `ghidra_decompile_quality` | Heuristic quality score 0..1 + signals |
+| `GET /symbols/rename_function` | `ghidra_rename_function` | USER_DEFINED rename |
+| `GET /symbols/set_signature` | `ghidra_set_signature` | Propose prototype (v0.2 stores as comment) |
+| `GET /symbols/list_functions` | `ghidra_list_functions` | Paginated function list |
+| `GET /symbols/list_strings` | `ghidra_list_strings` | Defined string data (filter by length / substring) |
+| `GET /symbols/list_symbols` | `ghidra_list_symbols` | All symbols w/ optional prefix |
+| `GET /symbols/list_imports` | `ghidra_list_imports` | External (imported) symbols |
+| `GET /symbols/list_exports` | `ghidra_list_exports` | Exported / external-entry symbols |
 
-### 6. `ghidra_version_tracking_correlate`
-- **Ghidra API**: `ghidra.feature.vt.api.main.VTSessionDB` + `VTProgramCorrelator`
-- **Purpose**: Match two binaries via Exact Bytes / Exact Mnemonics / Reference / Symbol-Name correlator
-- **Use**: **N-day port** — auto-port symbols + types + comments from a CVE-fixed binary to an unpatched target. 70%+ reduction in re-RE labor across firmware revisions
-- **In**: `{src_binary, dst_binary, correlator="ExactMatchBytes"|"ExactMatchMnemonics"|"Reference"|"SymbolName"}`
-- **Out**: match list w/ confidence scores
+## Tier 3 — Call graph (5 routes)
 
-### 7. `ghidra_run_script`
-- **Ghidra API**: `ghidra.app.script.GhidraScript.run()` via `GhidraScriptUtil`
-- **Purpose**: Eval arbitrary Jython/Java in Ghidra context
-- **Why**: Escape hatch — anything not directly exposed becomes accessible. Backstop for everything not in tiers 1-6
-- **In**: `{language="python"|"java", source, args}`
-- **Out**: `{stdout, return_value, error}`
+| HTTP route | Python wrapper | Purpose |
+|---|---|---|
+| `GET /callgraph/outgoing` | `ghidra_callgraph_outgoing` | Callees |
+| `GET /callgraph/incoming` | `ghidra_callgraph_incoming` | Callers |
+| `GET /callgraph/path` | `ghidra_callgraph_path` | BFS shortest src→dst path |
+| `GET /callgraph/entrypoints` | `ghidra_callgraph_entrypoints` | All entry points |
+| `GET /callgraph/leaves` | `ghidra_callgraph_leaves` | Functions that call nothing further |
 
-### 8. `ghidra_emulate_function`
-- **Ghidra API**: `ghidra.app.emulator.EmulatorHelper`
-- **Purpose**: SLEIGH P-code emulator — dry-run a function w/ synthetic inputs
-- **Use**: **Automated fuzz harness extraction**. Validates that a generated harness compiles + runs the entry path w/ synthetic input before handing off to AFL++/libFuzzer. Avatar2-class capability native in Ghidra
-- **In**: `{addr, regs={...}, mem=[...], stop_at, max_instructions=10000}`
-- **Out**: final state — registers, memory excerpts, executed-instruction count
+## Tier 4 — Type recovery (5 routes)
 
----
+| HTTP route | Python wrapper | Purpose |
+|---|---|---|
+| `GET /types/list` | `ghidra_types_list` | All data types (filter by prefix) |
+| `GET /types/get_struct` | `ghidra_types_get_struct` | Field-by-field struct layout |
+| `GET /types/apply_struct_at` | `ghidra_types_apply_struct_at` | Apply a struct at an address |
+| `GET /types/recover_function` | `ghidra_types_recover_function` | HighFunction type inference (return + params + locals) |
+| `GET /types/list_at_addr` | `ghidra_types_list_at_addr` | What's the data type at addr? |
 
-## Tier 2 — Data types + headers (v0.2 planned)
+## Tier 5 — In-memory patching (5 routes)
 
-7 tools for type-driven analysis. Without these, decompilation stays at `undefined4 FUN_00401234()`.
+| HTTP route | Python wrapper | Purpose |
+|---|---|---|
+| `GET /patch/assemble` | `ghidra_patch_assemble` | Assemble + write a mnemonic |
+| `GET /patch/nop_range` | `ghidra_patch_nop_range` | Overwrite range with arch NOPs |
+| `GET /patch/write_bytes` | `ghidra_patch_write_bytes` | Raw byte write |
+| `GET /patch/bookmark` | `ghidra_patch_bookmark` | NOTE bookmark for human review |
+| `GET /patch/list_bookmarks` | `ghidra_patch_list_bookmarks` | List bookmarks (optional category filter) |
 
-### 9. `ghidra_create_struct`
-- **API**: `StructureDataType` + `DataTypeManager.addDataType()`
-- **In**: `{name, fields:[{name, type, offset}], packing="DEFAULT"|"DISABLED"}`
+## Tier 6 — Search + memory + project (9 routes)
 
-### 10. `ghidra_create_enum`
-- **API**: `EnumDataType`
-- **Use**: Syscall numbers, ioctl codes
+| HTTP route | Python wrapper | Purpose |
+|---|---|---|
+| `GET /search/bytes` | `ghidra_search_bytes` | Find byte pattern (`??` wildcards) |
+| `GET /search/text` | `ghidra_search_text` | Find UTF-8 substring in memory |
+| `GET /xrefs/to` | `ghidra_xrefs_to` | References TO an address |
+| `GET /xrefs/from` | `ghidra_xrefs_from` | References FROM an address |
+| `GET /memory/map` | `ghidra_memory_map` | Memory block layout (segments, R/W/X) |
+| `GET /memory/read` | `ghidra_memory_read` | Read raw bytes (max 4096) |
+| `GET /project/info` | `ghidra_project_info` | Language, processor, endian, image base |
+| `GET /project/analyze` | `ghidra_project_analyze` | Kick off auto-analysis |
+| `GET /project/save` | `ghidra_project_save` | Persist program DB changes |
 
-### 11. `ghidra_apply_struct_at_addr`
-- **API**: `Listing.createData(addr, struct)`
-- **Use**: Overlay struct on memory
+## Source layout
 
-### 12. `ghidra_import_header_file`
-- **API**: `ghidra.app.util.cparser.C.CParser.parse()`
-- **Use**: Parse `.h` → DataTypeManager. Feed kernel headers, auto-type all syscall handlers
+```
+src/main/java/io/decepticon/ghidra/
+├── DecepticonGhidraExtendedPlugin.java   — server boot + routing (41 routes)
+├── util/
+│   ├── Json.java   — no-Gson JSON encoder
+│   └── Http.java   — query parse + body slurp + response helpers
+└── endpoints/
+    ├── PcodeEndpoints.java         — Tier 1: emit + slice (backward/forward)
+    ├── ScriptEndpoint.java         — Tier 1: Jython eval
+    ├── EmulateEndpoint.java        — Tier 1: SLEIGH emulator (POST body)
+    ├── BSimEndpoints.java          — Tier 1: BSim signature + query
+    ├── VTEndpoint.java             — Tier 1: Version Tracking
+    ├── DecompilerEndpoints.java    — Tier 2: decompile + symbols (9 routes)
+    ├── CallGraphEndpoints.java     — Tier 3: call graph (5 routes)
+    ├── TypeEndpoints.java          — Tier 4: type recovery (5 routes)
+    ├── PatchEndpoints.java         — Tier 5: in-memory patching (5 routes)
+    └── SearchEndpoints.java        — Tier 6: search + memory + project (9 routes)
+```
 
-### 13. `ghidra_import_gdt`
-- **API**: `FileDataTypeManager.openFileArchive()`
-- **Use**: Load `.gdt` archive (Win SDK, POSIX, Linux kernel pre-built)
+```
+scripts/
+├── bridge_mcp_ghidra_extended.py   — main bridge, registers Tier 1
+└── bridge_v02_tools.py             — registers Tier 2–6 (32 @mcp.tool() functions)
+```
 
-### 14. `ghidra_list_data_types`
-- **API**: `DataTypeManager.getAllDataTypes()`
-- **In**: `{filter_by_source, name_pattern}`
+## Build
 
-### 15. `ghidra_set_global_var_type`
-- **API**: `Listing.getDataAt().getDataType()` setter
-- **Bug**: LaurieWired only does locals
+```sh
+export GHIDRA_HOME=/opt/ghidra_11.0_PUBLIC
+mvn package
+# → target/decepticon-ghidra-mcp-extended-0.2.0.jar
+# Copy to $GHIDRA_HOME/Ghidra/Extensions/ then enable in File → Configure → Decepticon.
+```
 
----
+## Run bridge (operator-side)
 
-## Tier 3 — P-code slicing + emulation extensions (v0.2 planned)
-
-5 tools deepening the P-code analysis surface beyond Tier 1.
-
-### 16. `ghidra_high_function_symbols`
-- **API**: `HighFunction.getLocalSymbolMap()`
-- **Use**: Get decomp-recovered vars w/ storage. Better than disasm-level locals
-
-### 17. `ghidra_pcode_value_set_analysis`
-- **API**: Custom via `SymbolicPropagator` + `ConstantPropagationAnalyzer`
-- **Use**: Recover register constants at call sites → resolve indirect calls / function pointer tables
-
-### 18. `ghidra_call_graph_reachability`
-- **API**: `ghidra.program.model.block.BasicBlockModel` + BFS
-- **In**: `{src, dst, max_depth}`
-- **Out**: paths
-
-### 19. `ghidra_dominator_analysis`
-- **API**: `ghidra.graph.algo.DominanceAlgorithm`
-- **Use**: Find must-execute basic blocks → pre-conditions to reach sink
-
-### 20. `ghidra_decompile_with_options`
-- **API**: `DecompInterface.setOptions(DecompileOptions)`
-- **Use**: Force max timeout, custom type override, simplify style
-
----
-
-## Tier 4 — Symbol + cross-reference depth (v0.3 planned)
-
-5 tools for better symbol/xref control.
-
-### 21. `ghidra_demangle_symbol`
-- **API**: `ghidra.app.util.demangler.DemanglerUtil.demangle()`
-- **Handles**: GNU/MSVC/Itanium/Rust/Swift mangled names
-
-### 22. `ghidra_function_tags_set`
-- **API**: `Function.addTag()`
-- **Use**: Programmatic tagging for cohort hunts
-
-### 23. `ghidra_search_xrefs_by_type`
-- **API**: `ReferenceManager.getReferencesTo()` filtered by `RefType.{CONDITIONAL_CALL, UNCONDITIONAL_CALL, DATA, READ, WRITE, PTR}`
-- **Bug**: Existing LaurieWired returns all xrefs unfiltered
-
-### 24. `ghidra_assemble_patch`
-- **API**: `ghidra.app.plugin.assembler.Assemblers.getAssembler()`
-- **Use**: Reassemble instruction at addr → PoC patching, instrumentation, fault-injection harness
-- **In**: `{addr, asm="mov rax, 0x1337"}`
-
-### 25. `ghidra_function_create_at_addr`
-- **API**: `FunctionManager.createFunction()`
-- **Use**: Force-create fn where Ghidra missed entry point
-
----
-
-## Tier 5 — Loading + headless + project (v0.3 planned)
-
-5 tools for batch + multi-binary work.
-
-### 26. `ghidra_load_binary_with_loader`
-- **API**: `ghidra.app.util.opinion.LoaderService` w/ explicit loader choice
-- **Use**: Raw firmware blobs ("BinaryLoader" + base addr + lang spec)
-
-### 27. `ghidra_headless_run_script`
-- **Cmd**: Spawn `analyzeHeadless` subprocess
-- **Use**: Batch hunting across N binaries w/o GUI
-
-### 28. `ghidra_load_pdb`
-- **API**: `ghidra.app.plugin.core.analysis.PdbUniversalAnalyzer`
-- **Use**: Apply Microsoft PDB to PE post-import
-
-### 29. `ghidra_load_dwarf`
-- **API**: `ghidra.app.util.bin.format.dwarf.DWARFProgram`
-- **Use**: Apply DWARF to ELF post-import
-
-### 30. `ghidra_fid_apply`
-- **API**: `ghidra.feature.fid.service.FidService.search()`
-- **Use**: Library function ID — auto-identify statically-linked libc/openssl/zlib in stripped binaries
-
----
-
-## Tier 6 — Bonus essentials (v0.4 planned)
-
-### 31. `ghidra_bookmark_set` / `ghidra_bookmark_list`
-- **API**: `BookmarkManager`
-
-### 32. `ghidra_export_program`
-- **API**: `ExporterService` → C source / XML / raw bytes / binary patch
-
-### 33. `ghidra_analyze_program`
-- **API**: `AutoAnalysisManager.startAnalysis()`
-- **In**: `{passes:[...], options:{...}}`
-
-### 34. `ghidra_list_analyzers`
-- **API**: `AutoAnalysisManager.getAnalyzers()`
-- **Use**: Enumerate available passes w/ options
-
-### 35. `ghidra_golang_rtti_recover`
-- **API**: `ghidra.app.plugin.core.analysis.rust.RustStringAnalyzer` / GolangAnalyzer
-- **Use**: Restores Go/Rust types + method tables
-
-### 36. `ghidra_emulator_helper_step`
-- **API**: `EmulatorHelper.step()` (single-instruction emulation)
-- **Use**: Interactive emulation for the harder cases
-
----
-
-## Workflow integration
-
-See `docs/WORKFLOWS.md` for the 6 canonical agentic workflows these tools enable:
-1. Diff-based 0-day discovery via BSim
-2. Source→sink taint via P-code
-3. Cross-binary symbol port via Version Tracking
-4. Decomp-quality-driven iterative analysis
-5. Coverage-guided fuzz harness extraction
-6. Statically-linked lib identification + skip
-
-Each workflow chains 3-5 of the 36 tools into a single agent-driven loop.
+```sh
+uv run scripts/bridge_mcp_ghidra_extended.py --server http://127.0.0.1:8081
+```

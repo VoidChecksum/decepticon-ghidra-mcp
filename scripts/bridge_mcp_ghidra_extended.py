@@ -279,6 +279,30 @@ def ghidra_emulate_function(
     return _post("/emulate", body)
 
 
+def _try_register_v02_tools():
+    """v0.2 tools live in a sibling module to keep this file small.
+    Best-effort import — if the sibling isn't present we just skip the
+    v0.2 surface."""
+    try:
+        import importlib.util as _iu
+        import os as _os
+        sib = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                            "bridge_v02_tools.py")
+        if not _os.path.isfile(sib):
+            return False
+        spec = _iu.spec_from_file_location("bridge_v02_tools", sib)
+        mod = _iu.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.register_v02_tools(mcp, _get, _post)
+        return True
+    except Exception as e:
+        logger.warning(f"v0.2 tools registration skipped: {e}")
+        return False
+
+
+_try_register_v02_tools()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
