@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.decepticon.ghidra</groupId>
     <artifactId>decepticon-ghidra-mcp-extended</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <packaging>jar</packaging>
     <name>Decepticon Ghidra MCP Extended</name>
     <description>Extends LaurieWired/GhidraMCP w/ P-code, BSim, Version Tracking, Emulator, Script tools for agentic RE.</description>
@@ -36,10 +36,24 @@
         </dependency>
         <dependency>
             <groupId>ghidra</groupId>
+            <artifactId>Gui</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Framework/Gui/lib/Gui.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
             <artifactId>Docking</artifactId>
             <version>11.0</version>
             <scope>system</scope>
             <systemPath>${ghidra.home}/Ghidra/Framework/Docking/lib/Docking.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>FileSystem</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Framework/FileSystem/lib/FileSystem.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>ghidra</groupId>

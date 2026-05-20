@@ -303,6 +303,28 @@ def _try_register_v02_tools():
 _try_register_v02_tools()
 
 
+def _try_register_v03_tools():
+    """v0.3 tools — Tier 7-14: comments/equates/symbols/types/functions/refs/blocks/listing/analysis."""
+    try:
+        import importlib.util as _iu
+        import os as _os
+        sib = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                            "bridge_v03_tools.py")
+        if not _os.path.isfile(sib):
+            return False
+        spec = _iu.spec_from_file_location("bridge_v03_tools", sib)
+        mod = _iu.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.register_v03_tools(mcp, _get, _post)
+        return True
+    except Exception as e:
+        logger.warning(f"v0.3 tools registration skipped: {e}")
+        return False
+
+
+_try_register_v03_tools()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(

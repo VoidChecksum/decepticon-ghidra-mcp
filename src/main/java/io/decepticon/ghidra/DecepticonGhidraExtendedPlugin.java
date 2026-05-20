@@ -33,14 +33,22 @@ import ghidra.framework.plugintool.PluginTool;
 import ghidra.framework.plugintool.util.PluginStatus;
 import ghidra.program.model.listing.Program;
 
+import io.decepticon.ghidra.endpoints.AnalysisEndpoints;
 import io.decepticon.ghidra.endpoints.BSimEndpoints;
 import io.decepticon.ghidra.endpoints.CallGraphEndpoints;
+import io.decepticon.ghidra.endpoints.CommentEquateEndpoints;
+import io.decepticon.ghidra.endpoints.DataTypeAdvancedEndpoints;
 import io.decepticon.ghidra.endpoints.DecompilerEndpoints;
 import io.decepticon.ghidra.endpoints.EmulateEndpoint;
+import io.decepticon.ghidra.endpoints.FunctionAdvancedEndpoints;
+import io.decepticon.ghidra.endpoints.ListingEndpoints;
+import io.decepticon.ghidra.endpoints.MemoryBlockEndpoints;
 import io.decepticon.ghidra.endpoints.PatchEndpoints;
 import io.decepticon.ghidra.endpoints.PcodeEndpoints;
+import io.decepticon.ghidra.endpoints.ReferenceCrudEndpoints;
 import io.decepticon.ghidra.endpoints.ScriptEndpoint;
 import io.decepticon.ghidra.endpoints.SearchEndpoints;
+import io.decepticon.ghidra.endpoints.SymbolEndpoints;
 import io.decepticon.ghidra.endpoints.TypeEndpoints;
 import io.decepticon.ghidra.endpoints.VTEndpoint;
 import io.decepticon.ghidra.util.Http;
@@ -59,7 +67,7 @@ import java.util.Map;
 public class DecepticonGhidraExtendedPlugin extends Plugin
         implements PcodeEndpoints.ProgramAccessor {
 
-    public static final String VERSION = "0.2.0";
+    public static final String VERSION = "0.3.0";
     private static final int DEFAULT_PORT = 8081;
 
     private HttpServer server;
@@ -110,6 +118,14 @@ public class DecepticonGhidraExtendedPlugin extends Plugin
         TypeEndpoints types = new TypeEndpoints(this);
         PatchEndpoints patch = new PatchEndpoints(this);
         SearchEndpoints search = new SearchEndpoints(this);
+        CommentEquateEndpoints commentEquate = new CommentEquateEndpoints(this);
+        SymbolEndpoints sym = new SymbolEndpoints(this);
+        DataTypeAdvancedEndpoints typesAdv = new DataTypeAdvancedEndpoints(this);
+        FunctionAdvancedEndpoints fnAdv = new FunctionAdvancedEndpoints(this);
+        ReferenceCrudEndpoints refCrud = new ReferenceCrudEndpoints(this);
+        MemoryBlockEndpoints memBlocks = new MemoryBlockEndpoints(this);
+        ListingEndpoints listing = new ListingEndpoints(this);
+        AnalysisEndpoints analysis = new AnalysisEndpoints(this);
 
         server.createContext("/health", this::handleHealth);
         // Tier 1 — original v0.1 surface
@@ -159,6 +175,88 @@ public class DecepticonGhidraExtendedPlugin extends Plugin
         server.createContext("/project/info", search::handleProjectInfo);
         server.createContext("/project/analyze", search::handleAnalyze);
         server.createContext("/project/save", search::handleSave);
+        // Tier 7 — Comments + Equates
+        server.createContext("/comments/set",   commentEquate::handleCommentSet);
+        server.createContext("/comments/get",   commentEquate::handleCommentGet);
+        server.createContext("/comments/clear", commentEquate::handleCommentClear);
+        server.createContext("/comments/list",  commentEquate::handleCommentList);
+        server.createContext("/equates/list",   commentEquate::handleEquatesList);
+        server.createContext("/equates/create", commentEquate::handleEquateCreate);
+        server.createContext("/equates/get_at", commentEquate::handleEquateGetAt);
+        server.createContext("/equates/delete", commentEquate::handleEquateDelete);
+        server.createContext("/equates/rename", commentEquate::handleEquateRename);
+        // Tier 8 — Symbols deep
+        server.createContext("/symbols/create_label",        sym::handleCreateLabel);
+        server.createContext("/symbols/delete",              sym::handleDelete);
+        server.createContext("/symbols/get_at_addr",         sym::handleGetAtAddr);
+        server.createContext("/symbols/get_by_name",         sym::handleGetByName);
+        server.createContext("/symbols/set_primary",         sym::handleSetPrimary);
+        server.createContext("/symbols/list_namespaces",     sym::handleListNamespaces);
+        server.createContext("/symbols/create_namespace",    sym::handleCreateNamespace);
+        server.createContext("/symbols/create_class",        sym::handleCreateClass);
+        server.createContext("/symbols/list_class_symbols",  sym::handleListClassSymbols);
+        server.createContext("/symbols/get_label_history",   sym::handleGetLabelHistory);
+        // Tier 9 — Data types advanced
+        server.createContext("/types/create_struct",      typesAdv::handleCreateStruct);
+        server.createContext("/types/add_struct_field",   typesAdv::handleAddStructField);
+        server.createContext("/types/create_union",       typesAdv::handleCreateUnion);
+        server.createContext("/types/create_enum",        typesAdv::handleCreateEnum);
+        server.createContext("/types/add_enum_entry",     typesAdv::handleAddEnumEntry);
+        server.createContext("/types/create_typedef",     typesAdv::handleCreateTypedef);
+        server.createContext("/types/create_pointer",     typesAdv::handleCreatePointer);
+        server.createContext("/types/create_array",       typesAdv::handleCreateArray);
+        server.createContext("/types/list_categories",    typesAdv::handleListCategories);
+        server.createContext("/types/create_category",    typesAdv::handleCreateCategory);
+        server.createContext("/types/find_by_name",       typesAdv::handleFindByName);
+        server.createContext("/types/delete",             typesAdv::handleDelete);
+        // Tier 10 — Functions deep
+        server.createContext("/functions/create",            fnAdv::handleCreate);
+        server.createContext("/functions/delete",            fnAdv::handleDelete);
+        server.createContext("/functions/set_return_type",   fnAdv::handleSetReturnType);
+        server.createContext("/functions/list_parameters",   fnAdv::handleListParameters);
+        server.createContext("/functions/set_parameter",     fnAdv::handleSetParameter);
+        server.createContext("/functions/list_locals",       fnAdv::handleListLocals);
+        server.createContext("/functions/set_local",         fnAdv::handleSetLocal);
+        server.createContext("/functions/add_tag",           fnAdv::handleAddTag);
+        server.createContext("/functions/remove_tag",        fnAdv::handleRemoveTag);
+        server.createContext("/functions/list_calling_conv", fnAdv::handleListCallingConv);
+        server.createContext("/functions/set_calling_conv",  fnAdv::handleSetCallingConv);
+        server.createContext("/functions/set_attrs",         fnAdv::handleSetAttrs);
+        // Tier 11 — References CRUD
+        server.createContext("/refs/create",        refCrud::handleCreate);
+        server.createContext("/refs/delete",        refCrud::handleDelete);
+        server.createContext("/refs/set_primary",   refCrud::handleSetPrimary);
+        server.createContext("/refs/by_type",       refCrud::handleByType);
+        server.createContext("/refs/count_to",      refCrud::handleCountTo);
+        server.createContext("/refs/count_from",    refCrud::handleCountFrom);
+        server.createContext("/refs/external_only", refCrud::handleExternalOnly);
+        // Tier 12 — Memory blocks
+        server.createContext("/memblocks/create_initialized",   memBlocks::handleCreateInitialized);
+        server.createContext("/memblocks/create_uninitialized", memBlocks::handleCreateUninitialized);
+        server.createContext("/memblocks/delete",               memBlocks::handleDelete);
+        server.createContext("/memblocks/rename",               memBlocks::handleRename);
+        server.createContext("/memblocks/set_permissions",      memBlocks::handleSetPermissions);
+        server.createContext("/memblocks/split",                memBlocks::handleSplit);
+        server.createContext("/memblocks/fill",                 memBlocks::handleFill);
+        server.createContext("/memblocks/info",                 memBlocks::handleInfo);
+        // Tier 13 — Listing + CodeUnits
+        server.createContext("/listing/instructions",         listing::handleInstructions);
+        server.createContext("/listing/get_instruction_at",   listing::handleGetInstructionAt);
+        server.createContext("/listing/get_data_at",          listing::handleGetDataAt);
+        server.createContext("/listing/create_instruction",   listing::handleCreateInstruction);
+        server.createContext("/listing/create_data",          listing::handleCreateData);
+        server.createContext("/listing/clear",                listing::handleClear);
+        server.createContext("/listing/disassemble_range",    listing::handleDisassembleRange);
+        server.createContext("/listing/get_string_at",        listing::handleGetStringAt);
+        server.createContext("/listing/set_fallthrough",      listing::handleSetFallthrough);
+        // Tier 14 — Analysis
+        server.createContext("/analysis/list_analyzers",   analysis::handleListAnalyzers);
+        server.createContext("/analysis/get_options",      analysis::handleGetOptions);
+        server.createContext("/analysis/set_option",       analysis::handleSetOption);
+        server.createContext("/analysis/reanalyze_all",    analysis::handleReanalyzeAll);
+        server.createContext("/analysis/program_changes",  analysis::handleProgramChanges);
+        server.createContext("/project/options",           analysis::handleProjectOptions);
+        server.createContext("/project/list_options",      analysis::handleListOptions);
 
         server.setExecutor(null);
         server.start();
