@@ -39,8 +39,10 @@ from __future__ import annotations
 import argparse
 import logging
 import os
-from typing import Any
+from typing import Any  # re-used by tool signatures below
 from urllib.parse import urljoin
+
+_ = Any  # quiet linters for the re-export of Any
 
 import requests
 from mcp.server.fastmcp import FastMCP
@@ -252,19 +254,29 @@ def ghidra_emulate_function(
 
     Args:
         addr: Function entry address
-        regs: Initial register values, e.g. {"RDI": 0x1000, "RSI": 0x4000}
-        mem: Memory writes, e.g. [{"addr": "0x1000", "data": "hex string"}]
-        stop_at: Address to stop emulation at (None = run to function exit)
+        regs: Initial register values, e.g. {"RDI": 0x1000, "RSI": 0x4000}.
+            Pass either int (decimal/hex) or "0xDEADBEEF" string.
+        mem: Memory writes, e.g. [{"addr": "0x1000", "data": "deadbeef"}].
+            ``data`` is hex-encoded bytes (no spaces, no 0x prefix).
+        stop_at: Address to stop emulation at (None = run to max_instructions)
         max_instructions: Hard cap on instructions executed
 
     Returns:
-        {final_state: {registers, memory_excerpt}, executed_instructions}
+        {function, entry, executed_instructions, stopped_at, stop_reason,
+         final_regs: {REG: "0x..."}, final_mem: [{addr, data}]}
     """
-    params = {"addr": addr, "max_instructions": str(max_instructions)}
+    body: dict[str, Any] = {
+        "addr": addr,
+        "max_instructions": max_instructions,
+    }
     if stop_at:
-        params["stop_at"] = stop_at
-    # GET first for v0.1 (POST body needed in v0.1.1 for regs/mem)
-    return _get("/emulate", params)
+        body["stop_at"] = stop_at
+    if regs:
+        # Convert int values to ensure they serialize as JSON numbers
+        body["regs"] = {k: int(v) for k, v in regs.items()}
+    if mem:
+        body["mem"] = mem
+    return _post("/emulate", body)
 
 
 def main():
