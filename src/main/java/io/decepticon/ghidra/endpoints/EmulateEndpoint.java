@@ -107,12 +107,18 @@ public final class EmulateEndpoint {
                 emu.setBreakpoint(stopAt);
             }
 
-            // Run
-            emu.setExecutionAddress(entry);
+            // Set PC to entry. EmulatorHelper has no setExecutionAddress —
+            // we write the language's program-counter register directly.
+            ghidra.program.model.lang.Register pc =
+                prog.getLanguage().getProgramCounter();
+            if (pc != null) {
+                emu.writeRegister(pc, entry.getOffset());
+            }
+
             long executed = 0;
             String stopReason = "max_instructions";
             while (executed < p.maxInstructions) {
-                boolean stepped = emu.step(null);
+                boolean stepped = emu.step(ghidra.util.task.TaskMonitor.DUMMY);
                 if (!stepped) {
                     stopReason = "halt";
                     break;

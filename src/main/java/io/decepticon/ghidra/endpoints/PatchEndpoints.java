@@ -15,6 +15,7 @@ import ghidra.app.plugin.assembler.Assembler;
 import ghidra.app.plugin.assembler.Assemblers;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressIterator;
+import ghidra.program.model.address.AddressSetView;
 import ghidra.program.model.listing.Bookmark;
 import ghidra.program.model.listing.BookmarkManager;
 import ghidra.program.model.listing.Program;
@@ -176,7 +177,7 @@ public final class PatchEndpoints {
         BookmarkManager bm = prog.getBookmarkManager();
         int tx = prog.startTransaction("decepticon mcp: bookmark");
         try {
-            bm.setBookmark(a, BookmarkManager.NOTE_BOOKMARK_TYPE, category, comment);
+            bm.setBookmark(a, ghidra.program.model.listing.BookmarkType.NOTE, category, comment);
         } finally {
             prog.endTransaction(tx, true);
         }
@@ -196,10 +197,11 @@ public final class PatchEndpoints {
         String filterCategory = q.get("category");
         BookmarkManager bm = prog.getBookmarkManager();
         List<Map<String, Object>> out = new ArrayList<>();
-        AddressIterator it = bm.getBookmarkAddresses(BookmarkManager.NOTE_BOOKMARK_TYPE);
+        AddressSetView addrs = bm.getBookmarkAddresses(ghidra.program.model.listing.BookmarkType.NOTE);
+        AddressIterator it = addrs.getAddresses(true);
         while (it.hasNext()) {
             Address a = it.next();
-            for (Bookmark b : bm.getBookmarks(a, BookmarkManager.NOTE_BOOKMARK_TYPE)) {
+            for (Bookmark b : bm.getBookmarks(a, ghidra.program.model.listing.BookmarkType.NOTE)) {
                 if (filterCategory != null && !filterCategory.equals(b.getCategory())) continue;
                 Map<String, Object> m = new HashMap<>();
                 m.put("addr", a.toString());

@@ -29,6 +29,34 @@
         </dependency>
         <dependency>
             <groupId>ghidra</groupId>
+            <artifactId>Utility</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Framework/Utility/lib/Utility.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>Docking</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Framework/Docking/lib/Docking.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>DB</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Framework/DB/lib/DB.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>Base</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Features/Base/lib/Base.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
             <artifactId>Project</artifactId>
             <version>11.0</version>
             <scope>system</scope>
@@ -39,7 +67,14 @@
             <artifactId>SoftwareModeling</artifactId>
             <version>11.0</version>
             <scope>system</scope>
-            <systemPath>${ghidra.home}/Ghidra/Features/Base/lib/SoftwareModeling.jar</systemPath>
+            <systemPath>${ghidra.home}/Ghidra/Framework/SoftwareModeling/lib/SoftwareModeling.jar</systemPath>
+        </dependency>
+        <dependency>
+            <groupId>ghidra</groupId>
+            <artifactId>Emulation</artifactId>
+            <version>11.0</version>
+            <scope>system</scope>
+            <systemPath>${ghidra.home}/Ghidra/Framework/Emulation/lib/Emulation.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>ghidra</groupId>
