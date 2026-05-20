@@ -99,9 +99,11 @@ public final class PatchEndpoints {
         try {
             byte[] nops = new byte[(int) len];
             for (int i = 0; i < nops.length; i++) nops[i] = nopByte;
-            mem.setBytes(start, nops);
-            // Re-disassemble
+            // CodeUnits MUST be cleared before setBytes — Memory rejects
+            // writes that overlap existing instructions/data with
+            // MemoryAccessException("Memory change conflicts with instruction at ...").
             prog.getListing().clearCodeUnits(start, end, false);
+            mem.setBytes(start, nops);
             ok = true;
         } catch (MemoryAccessException e) {
             error = "MemoryAccessException: " + e.getMessage();
@@ -146,8 +148,11 @@ public final class PatchEndpoints {
         boolean ok = false;
         String error = null;
         try {
-            prog.getMemory().setBytes(a, bytes);
+            // CodeUnits MUST be cleared before setBytes — Memory rejects
+            // writes that overlap existing instructions/data with
+            // MemoryAccessException("Memory change conflicts with instruction at ...").
             prog.getListing().clearCodeUnits(a, a.add(bytes.length - 1L), false);
+            prog.getMemory().setBytes(a, bytes);
             ok = true;
         } catch (MemoryAccessException e) {
             error = "MemoryAccessException: " + e.getMessage();
